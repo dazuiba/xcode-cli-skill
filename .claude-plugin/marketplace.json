@@ -13,10 +13,7 @@
       "author": {
         "name": "dazuiba"
       },
-      "source": {
-        "source": "url",
-        "url": "https://github.com/dazuiba/xcode-cli.git"
-      },
+      "source": "./xcode-cli-plugin",
       "homepage": "https://github.com/dazuiba/xcode-cli"
     }
   ]
