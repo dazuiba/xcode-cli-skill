@@ -1,8 +1,0 @@
-{
-  "name": "xcode-cli",
-  "description": "CLI wrapper for Xcode MCP tools — build, diagnose, test, and preview Xcode projects from your terminal",
-  "version": "0.1.0",
-  "author": {
-    "name": "dazuiba"
-  }
-}

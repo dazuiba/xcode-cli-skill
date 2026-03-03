@@ -41,46 +41,87 @@ MCP tool definitions (~5K tokens for 20 tools) load into **every conversation**,
 - **macOS** with **Xcode 26+** (ships `xcrun mcpbridge`)
 - **Node.js** 18+
 - **[mcp-proxy](https://github.com/sparfenyuk/mcp-proxy)** (bridges stdio MCP to HTTP)
-- **pm2** (optional, keeps mcp-proxy alive)
+- **pm2** (keeps mcp-proxy alive)
 
 ## Quick Start
 
-### 1. Install mcp-proxy
-
 ```bash
-pip install mcp-proxy
-# or
-uv tool install mcp-proxy
-```
+# 1. Install dependencies
+uv tool install mcp-proxy   # or: pip install mcp-proxy
+npm install -g pm2
 
-### 2. Start the MCP proxy
+# 2. Clone and install CLI
+git clone https://github.com/dazuiba/xcode-cli.git
+cd xcode-cli
+npm link
 
-```bash
-# One-off
-mcp-proxy --port 9876 -- xcrun mcpbridge
-
-# Or use pm2 to keep it running (recommended)
+# 3. Start the persistent proxy
 pm2 start xcode-mcp-proxy.config.cjs
 pm2 save
 ```
 
-Click "Allow" once when the TCC dialog appears. That's it — never again.
+Click "Allow" **once** when the TCC dialog appears. That's it — never again.
 
-### 3. Install xcode-cli
-
-```bash
-git clone https://github.com/nicklama/xcode-cli.git
-cd xcode-cli
-npm link
-```
-
-### 4. Verify
+### Verify
 
 ```bash
 # Make sure Xcode is open with a project
 xcode-cli XcodeListWindows
 xcode-cli BuildProject --tab-identifier windowtab1
 ```
+
+## AI Agent Integration
+
+### Claude Code (Skill)
+
+Install the skill so Claude Code knows how to use `xcode-cli`:
+
+```bash
+mkdir -p ~/.claude/skills/xcode-cli
+cp skills/xcode-cli/SKILL.md ~/.claude/skills/xcode-cli/SKILL.md
+```
+
+Restart Claude Code. The skill will be available as `/xcode-cli`.
+
+### Claude Code (MCP server)
+
+If you prefer the MCP approach (loads 20 tool definitions into every conversation):
+
+```json
+{
+  "mcpServers": {
+    "xcode-proxy": {
+      "type": "http",
+      "url": "http://localhost:9876/mcp"
+    }
+  }
+}
+```
+
+### Codex / Other Agents
+
+Any agent that can run bash commands can use `xcode-cli` directly. Add to your `AGENTS.md`:
+
+````markdown
+## Xcode Tools
+
+Use `xcode-cli` CLI to interact with Xcode IDE. Always get `tab-identifier` first:
+
+```bash
+xcode-cli XcodeListWindows
+```
+
+Then use it for build, diagnostics, testing, and preview:
+
+```bash
+xcode-cli BuildProject --tab-identifier windowtab1
+xcode-cli GetBuildLog --tab-identifier windowtab1 --severity error
+xcode-cli XcodeRefreshCodeIssuesInFile --tab-identifier windowtab1 --file-path "path/to/file.swift"
+xcode-cli RunAllTests --tab-identifier windowtab1
+```
+
+Run `xcode-cli --help` for all 20 available tools.
+````
 
 ## Usage
 
@@ -128,44 +169,6 @@ xcode-cli RunAllTests --tab-identifier windowtab1
 ```
 
 Run `xcode-cli --help` for the full command list.
-
-## Claude Code Integration
-
-### As a Skill (recommended)
-
-Copy the provided `SKILL.md` to your Claude Code skills directory:
-
-```bash
-mkdir -p ~/.claude/skills/xcode-mcp
-cp SKILL.md ~/.claude/skills/xcode-mcp/SKILL.md
-```
-
-Then disable the MCP server in `~/.claude/.claude.json` to stop loading 20 tool definitions:
-
-```json
-{
-  "projects": {
-    "/path/to/your/project": {
-      "disabledMcpServers": ["xcode-proxy"]
-    }
-  }
-}
-```
-
-### As MCP server (traditional)
-
-If you prefer the MCP approach (still benefits from the TCC fix):
-
-```json
-{
-  "mcpServers": {
-    "xcode-proxy": {
-      "type": "http",
-      "url": "http://localhost:9876/mcp"
-    }
-  }
-}
-```
 
 ## How It Works
 
