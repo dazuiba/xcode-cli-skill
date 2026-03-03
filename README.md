@@ -2,21 +2,20 @@
 
 [中文文档](./README_CN.md)
 
-CLI wrapper for [Xcode MCP tools](https://developer.apple.com/xcode/mcp/) — build, diagnose, test, and preview Xcode projects from your terminal, without the TCC permission popup nightmare.
+CLI + Skill wrapper for the [official Xcode 26+ MCP tools](https://developer.apple.com/xcode/mcp/) — build, diagnose, test, and preview Xcode projects from your terminal or AI agent.
 
-## The Problem
+| Pain point | Solution |
+|------------|----------|
+| AI agents trigger a macOS TCC dialog on every Xcode MCP call, and it never remembers | A persistent `mcp-proxy` process — macOS only asks once |
+| MCP tool definitions (20 tools, ~5K tokens) load into every conversation | Wrapped as a Claude Code Skill — loads on-demand |
+
+## Details
+
+### Problem 1: TCC Permission Popups
 
 <img src="alert.jpg" width="360" alt="macOS TCC permission dialog: Allow Codex to access Xcode?">
 
-If you use AI agents (Claude Code, Codex, Cursor...) with Xcode 26's MCP tools, you've hit this macOS permission loop:
-
-> **Allow "Codex" to access Xcode?**
-> The agent at /Applications/Codex.app/..., **PID 14225** wants to use Xcode's tools to perform actions like building, testing, or modifying code.
-
-As [frustrated developers report](https://github.com/openai/codex/issues/10741):
-- The dialog pops up **every 3 seconds**, asking permission again and again
-- You're **repeatedly asked 10s of times** just to read warnings and errors
-- Because CLI agents spawn new processes with different PIDs, macOS **never remembers your choice** — it's not added to Automation preferences either
+When AI agents (Claude Code, Codex, Cursor) call Xcode 26 MCP tools, macOS TCC dialogs pop up every few seconds — and because CLI agents spawn new processes with different PIDs, macOS [never remembers your choice](https://github.com/openai/codex/issues/10741).
 
 ### Root Cause
 
@@ -32,7 +31,7 @@ Agent ──HTTP──▶ mcp-proxy (persistent, single PID) ──stdio──�
               Allow once, done forever
 ```
 
-## Bonus: Save ~5K Tokens of Context
+### Problem 2: Save ~5K Tokens of Context
 
 MCP tool definitions (~5K tokens for 20 tools) load into **every conversation**, whether you use them or not. By wrapping them as a [Claude Code Skill](https://docs.anthropic.com/en/docs/claude-code/skills), only a ~30-word description stays in context — full tool docs load on-demand.
 
