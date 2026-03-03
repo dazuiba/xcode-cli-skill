@@ -1,3 +1,9 @@
+---
+name: xcode-cli
+version: 0.1.0
+description: Xcode IDE 交互技能。通过 xcode-cli CLI 调用 Xcode MCP 工具，支持编译、诊断、测试、预览。使用场景：用户要求编译 Xcode 项目、查看编译错误、单文件诊断、运行测试、渲染 SwiftUI 预览、搜索 Apple 文档。
+---
+
 # xcode-cli Skill
 
 Xcode IDE 交互技能。通过 `xcode-cli` CLI 调用 Xcode MCP 工具，支持编译、诊断、测试、预览等操作。
