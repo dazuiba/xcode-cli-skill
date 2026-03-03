@@ -82,92 +82,28 @@ cp skills/xcode-cli/SKILL.md ~/.claude/skills/xcode-cli/SKILL.md
 
 重启 Claude Code，skill 将以 `/xcode-cli` 形式可用。
 
-### Claude Code（MCP server 方式）
+### Codex（Skill 方式）
 
-如果偏好 MCP 方式（会在每次对话中加载 20 个工具定义）：
-
-```json
-{
-  "mcpServers": {
-    "xcode-proxy": {
-      "type": "http",
-      "url": "http://localhost:9876/mcp"
-    }
-  }
-}
-```
-
-### Codex / 其他代理
-
-任何能执行 bash 命令的代理都可以直接使用 `xcode-cli`。在 `AGENTS.md` 中添加：
-
-````markdown
-## Xcode Tools
-
-使用 `xcode-cli` CLI 与 Xcode IDE 交互。先获取 `tab-identifier`：
+与 Claude Code 安装方式相同：
 
 ```bash
-xcode-cli XcodeListWindows
+mkdir -p ~/.codex/skills/xcode-cli
+cp skills/xcode-cli/SKILL.md ~/.codex/skills/xcode-cli/SKILL.md
 ```
 
-然后用于编译、诊断、测试和预览：
+### MCP Server 方式（不推荐）
+
+Claude Code 和 Codex 均支持直接将代理注册为 MCP server：
 
 ```bash
-xcode-cli BuildProject --tab-identifier windowtab1
-xcode-cli GetBuildLog --tab-identifier windowtab1 --severity error
-xcode-cli XcodeRefreshCodeIssuesInFile --tab-identifier windowtab1 --file-path "path/to/file.swift"
-xcode-cli RunAllTests --tab-identifier windowtab1
+# Claude Code
+claude mcp add --transport http xcode-mcp http://localhost:9876/mcp
+
+# Codex
+codex mcp add --url http://localhost:9876/mcp xcode-mcp
 ```
 
-运行 `xcode-cli --help` 查看全部 20 个工具。
-````
-
-## 使用方法
-
-```bash
-xcode-cli <ToolName> [--param value ...]
-```
-
-大多数命令需要 `--tab-identifier`，先获取：
-
-```bash
-xcode-cli XcodeListWindows
-```
-
-### 可用工具（20 个）
-
-| 类别 | 工具 |
-|------|------|
-| **构建与诊断** | `BuildProject`, `GetBuildLog`, `XcodeRefreshCodeIssuesInFile`, `XcodeListNavigatorIssues` |
-| **文件操作** | `XcodeRead`, `XcodeWrite`, `XcodeUpdate`, `XcodeRM`, `XcodeMV`, `XcodeMakeDir`, `XcodeLS` |
-| **搜索** | `XcodeGrep`, `XcodeGlob`, `DocumentationSearch` |
-| **测试** | `GetTestList`, `RunAllTests`, `RunSomeTests` |
-| **预览与执行** | `RenderPreview`, `ExecuteSnippet` |
-| **工作区** | `XcodeListWindows` |
-
-### 示例
-
-```bash
-# 编译并检查错误
-xcode-cli BuildProject --tab-identifier windowtab1
-xcode-cli GetBuildLog --tab-identifier windowtab1 --severity error
-
-# 单文件快速诊断（无需完整编译）
-xcode-cli XcodeRefreshCodeIssuesInFile --tab-identifier windowtab1 \
-  --file-path "MyApp/Sources/ContentView.swift"
-
-# 渲染 SwiftUI 预览
-xcode-cli RenderPreview --tab-identifier windowtab1 \
-  --source-file-path "MyApp/Sources/Views/HomeView.swift"
-
-# 搜索 Apple 文档
-xcode-cli DocumentationSearch --query "SwiftUI NavigationStack"
-
-# 运行全部测试
-xcode-cli RunAllTests --tab-identifier windowtab1
-```
-
-完整参数：`xcode-cli --help`
+> **注意：** 此方式会将全部 20 个工具定义加载到每次对话，无法享受每次对话节省 **~5K tokens** 上下文的优势，因此不推荐。
 
 ## 工作原理
 
@@ -180,18 +116,6 @@ AI Agent ──bash──▶ xcode-cli ──HTTP──▶ mcp-proxy ──stdio
 | `xcrun mcpbridge` | Xcode 内置 MCP server（stdio 传输） |
 | `mcp-proxy` | stdio → HTTP 桥接（端口 9876）；消除权限弹窗的持久进程 |
 | `xcode-cli` | 由 [mcporter](https://github.com/steipete/mcporter) 生成的 CLI 封装，将命令行参数转为 MCP 工具调用 |
-
-## 重新生成 CLI
-
-当 Xcode 新增 MCP 工具时：
-
-```bash
-npx mcporter generate-cli \
-  --command "http://localhost:9876/mcp" \
-  --output bin/xcode-cli.ts \
-  --bundle bin/xcode-cli \
-  --runtime node
-```
 
 ## License
 
