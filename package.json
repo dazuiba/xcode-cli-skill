@@ -1,0 +1,20 @@
+{
+  "name": "xcode-cli",
+  "version": "0.1.0",
+  "description": "CLI wrapper for Xcode MCP tools — use Xcode IDE features from your terminal",
+  "bin": {
+    "xcode-cli": "./bin/xcode-cli"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "xcode",
+    "mcp",
+    "cli",
+    "ios",
+    "macos",
+    "swift"
+  ]
+}
