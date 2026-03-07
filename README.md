@@ -2,12 +2,12 @@
 
 [中文文档](./README_CN.md)
 
-CLI + Skill wrapper for the [official Xcode 26.3+ MCP tools](https://developer.apple.com/xcode/mcp/): a persistent `mcp-proxy` so the "Allow access to Xcode?" popup only appears **once per boot**, plus a Claude Code Skill that saves **~5K tokens** of context per conversation.
+CLI + Skill wrapper for the [official Xcode 26.3+ MCP tools](https://developer.apple.com/xcode/mcp/): a persistent local bridge service so the "Allow access to Xcode?" popup stops showing up on every call, plus a Claude Code / Codex Skill that keeps the full Xcode MCP tool surface out of every conversation by default.
 
-| Pain point | Solution |
-|------------|----------|
-| AI agents get a "Allow access to Xcode?" popup on every Xcode MCP call, and it never remembers | A persistent `mcp-proxy` process — macOS only asks once |
-| MCP tool definitions (20 tools, ~5K tokens) load into every conversation | Wrapped as a Claude Code Skill — loads on-demand |
+| Problem | What this repo gives you |
+|---------|--------------------------|
+| AI agents get a "Allow access to Xcode?" popup over and over when talking to Xcode MCP | A long-lived local bridge service managed by `xcode-cli-ctl`, so the agent talks to one stable endpoint instead of spawning a fresh bridge every time |
+| Xcode MCP tools are powerful, but you usually do not want all of them loaded into every conversation | A packaged `xcode-cli` Skill, so agents can load the workflow on demand instead of treating raw MCP as the default path |
 
 ## Details
 
@@ -15,97 +15,114 @@ CLI + Skill wrapper for the [official Xcode 26.3+ MCP tools](https://developer.a
 
 <img src="alert.jpg" width="360" alt="macOS permission dialog: Allow Codex to access Xcode?">
 
-When AI agents (Claude Code, Codex, Cursor) call Xcode 26.3 MCP tools, macOS pops up "Allow access to Xcode?" every few seconds — and because CLI agents spawn new processes with different PIDs, macOS [never remembers your choice](https://github.com/openai/codex/issues/10741).
+When AI agents (Claude Code, Codex, Cursor) call Xcode 26.3 MCP tools, macOS can keep popping up "Allow access to Xcode?" every few seconds. If the bridge process keeps changing, macOS does not treat it as the same long-lived integration.
 
 ### Root Cause
 
-Each time an AI agent calls `xcrun mcpbridge`, macOS sees a fresh process (new PID) and triggers a new permission dialog. There's no way to permanently allow it.
+The Xcode MCP bridge is process-bound. If every call goes through a fresh short-lived process, you get repeated permission prompts and a worse day-to-day workflow.
 
 ### The Fix
 
-This tool interposes a persistent `mcp-proxy` process between the agent and Xcode. The proxy holds a **long-lived connection** to `xcrun mcpbridge`, so macOS only asks for permission **once**. The agent talks to the proxy over HTTP — no new PIDs, no more popups.
+This repo runs a persistent local bridge service in front of `xcrun mcpbridge`. The agent or terminal CLI talks to that stable HTTP endpoint, while `xcode-cli-ctl` manages the background service for you.
 
+```text
+Agent / CLI ──HTTP──▶ local bridge service ──▶ xcrun mcpbridge ──▶ Xcode
+                           ▲
+                  managed by xcode-cli-ctl
 ```
-Agent ──HTTP──▶ mcp-proxy (persistent, single PID) ──stdio──▶ xcrun mcpbridge ──▶ Xcode
-                    ▲
-              Allow once, done forever
-```
 
-### Problem 2: Save ~5K Tokens of Context
+### Problem 2: Keep MCP Out of Every Conversation by Default
 
-MCP tool definitions (~5K tokens for 20 tools) load into **every conversation**, whether you use them or not. By wrapping them as a [Claude Code Skill](https://docs.anthropic.com/en/docs/claude-code/skills), only a ~30-word description stays in context — full tool docs load on-demand.
+Raw MCP server integration is available, but it is not the recommended default. For Claude Code and Codex, this repo is primarily about the packaged `xcode-cli` Skill: let the agent load the workflow when it actually needs Xcode, instead of wiring raw MCP tools into every session.
 
 ## Prerequisites
 
-- **macOS** with **Xcode 26.3+** (ships `xcrun mcpbridge`)
+- **macOS** with **Xcode 26.3+**
 - **Node.js** 18+
-- **[mcp-proxy](https://github.com/sparfenyuk/mcp-proxy)** (bridges stdio MCP to HTTP)
-- **pm2** (keeps mcp-proxy alive)
+- Xcode open with the target project/workspace when you want to build, test, preview, or inspect issues
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
-uv tool install mcp-proxy   # or: pip install mcp-proxy
-npm install -g pm2
+# 1. Install from npm
+npm install -g xcode-cli
 
-# 2. Clone and install CLI
-git clone https://github.com/dazuiba/xcode-cli-skill.git
-cd xcode-cli-skill
-npm link
+# 2. Install and start the local bridge service
+xcode-cli-ctl install
 
-# 3. Start the persistent proxy
-pm2 start xcode-mcp-proxy.config.cjs
-pm2 save
+# 3. Check service health
+xcode-cli-ctl status
+
+# 4. Install the packaged skill
+xcode-cli-ctl skill install
 ```
 
-Click "Allow" **once** when prompted. That's it — never again.
+Click "Allow" when macOS asks for Xcode permission.
 
 ### Verify
 
 ```bash
 # Make sure Xcode is open with a project
-xcode-cli XcodeListWindows
-xcode-cli BuildProject --tab-identifier windowtab1
+xcode-cli windows
+xcode-cli build
 ```
 
 ## AI Agent Integration
 
 ### Claude Code (Skill)
 
-Install the skill so Claude Code knows how to use `xcode-cli`:
+Install the packaged skill so Claude Code can use `xcode-cli` as an on-demand workflow:
 
 ```bash
-mkdir -p ~/.claude/skills/xcode-cli
-cp skills/xcode-cli/SKILL.md ~/.claude/skills/xcode-cli/SKILL.md
+xcode-cli-ctl skill install --claude
 ```
 
-Restart Claude Code. The skill will be available as `/xcode-cli`.
+If you omit `--claude` / `--codex`, the skill installs to both by default.
 
 ### Codex (Skill)
 
-Install the skill globally, just like Claude Code:
+Install the packaged skill for Codex:
 
 ```bash
-mkdir -p ~/.codex/skills/xcode-cli
-cp skills/xcode-cli/SKILL.md ~/.codex/skills/xcode-cli/SKILL.md
+xcode-cli-ctl skill install --codex
+```
+
+Or install to both agents at once:
+
+```bash
+xcode-cli-ctl skill install
 ```
 
 ### MCP Server (not recommended)
 
-Both Claude Code and Codex support adding the proxy as an MCP server directly:
+If you really want raw MCP wiring instead of the skill-first workflow, add the local bridge manually:
 
 ```bash
 # Claude Code
-claude mcp add --transport http xcode-mcp http://localhost:9876/mcp
+claude mcp add --transport http xcode http://localhost:48321/mcp
 
 # Codex
-codex mcp add --url http://localhost:9876/mcp xcode-mcp
+codex mcp add xcode --url http://localhost:48321/mcp
 ```
 
-> **Note:** This loads all 20 tool definitions into every conversation — you won't benefit from the **~5K tokens** context savings. Use the Skill approach above instead.
+> **Note:** This is available as a manual fallback, but the main point of this repo is the skill-based workflow, not raw MCP as the default integration path.
 
-### Available Tools (20) provided by xcode 26.3+
+### Common `xcode-cli` Commands
+
+```bash
+xcode-cli windows
+xcode-cli status
+xcode-cli build
+xcode-cli build-log --severity error
+xcode-cli test list
+xcode-cli test all
+xcode-cli test some --target MyTests "FeatureTests#testExample"
+xcode-cli file-issues "Sources/App.swift"
+xcode-cli preview "Sources/MyView.swift" --out ./preview-out
+xcode-cli doc "SwiftUI NavigationStack" --frameworks SwiftUI
+```
+
+### Available Tools (20) provided by Xcode 26.3+
 
 | Category | Tools |
 |----------|-------|
@@ -118,15 +135,16 @@ codex mcp add --url http://localhost:9876/mcp xcode-mcp
 
 ## How It Works
 
-```
-AI Agent ──bash──▶ xcode-cli ──HTTP──▶ mcp-proxy ──stdio──▶ xcrun mcpbridge ──▶ Xcode IDE
+```text
+AI Agent ──skill / bash──▶ xcode-cli ──HTTP──▶ local bridge service ──▶ xcrun mcpbridge ──▶ Xcode IDE
 ```
 
 | Component | Role |
 |-----------|------|
-| `xcrun mcpbridge` | Xcode's built-in MCP server (stdio transport) |
-| `mcp-proxy` | Bridges stdio → HTTP on port 9876; the persistent process that eliminates permission popups |
-| `xcode-cli` | CLI wrapper generated by [mcporter](https://github.com/steipete/mcporter), converts CLI args → MCP tool calls |
+| `xcrun mcpbridge` | Xcode's built-in MCP bridge |
+| local bridge service | Persistent HTTP bridge managed via `xcode-cli-ctl` on port `48321` |
+| `xcode-cli` | Friendly CLI surface for Xcode MCP workflows |
+| `xcode-cli` Skill | The recommended integration path for Claude Code / Codex |
 
 ## License
 

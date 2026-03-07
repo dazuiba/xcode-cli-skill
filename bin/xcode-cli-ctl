@@ -11,9 +11,9 @@ DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 ROOT_DIR="$(cd -P "$DIR/.." && pwd)"
 TSX_LOADER="$(node -e 'try { console.log(require.resolve("tsx", { paths: [process.argv[1]] })); } catch { process.exit(1); }' "$ROOT_DIR")"
 if [[ -z "$TSX_LOADER" || ! -f "$TSX_LOADER" ]]; then
-  echo "xcode-cli: missing runtime dependency 'tsx'" >&2
+  echo "xcode-cli-ctl: missing runtime dependency 'tsx'" >&2
   echo "Reinstall package dependencies (npm install) or reinstall xcode-cli." >&2
   exit 1
 fi
 
-exec node --import "$TSX_LOADER" "$ROOT_DIR/src/xcode.ts" "$@"
+exec node --import "$TSX_LOADER" "$ROOT_DIR/src/xcode-ctl.ts" "$@"

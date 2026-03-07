@@ -1,20 +1,41 @@
 {
   "name": "xcode-cli",
-  "version": "0.1.0",
-  "description": "CLI wrapper for Xcode MCP tools — use Xcode IDE features from your terminal",
-  "bin": {
-    "xcode-cli": "./bin/xcode-cli"
+  "version": "1.0.5",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
+    "generate": "mcporter generate-cli --command \"xcrun mcpbridge\" --name mcpbridge --description \"xcode-tools\" --output ./src/mcpbridge.ts"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "license": "MIT",
   "keywords": [
     "xcode",
     "mcp",
+    "model-context-protocol",
     "cli",
     "ios",
-    "macos",
     "swift"
-  ]
+  ],
+  "author": "Peter Gammelgaard",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dazuiba/xcode-cli-skill.git"
+  },
+  "license": "MIT",
+  "description": "CLI for interacting with Xcode MCP tools from the terminal.",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "commander": "^14.0.3",
+    "mcporter": "^0.7.3",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {},
+  "type": "module",
+  "files": [
+    "bin/",
+    "src/",
+    "skills/"
+  ],
+  "bin": {
+    "xcode-cli": "./bin/xcode-cli",
+    "xcode-cli-ctl": "./bin/xcode-cli-ctl"
+  }
 }
