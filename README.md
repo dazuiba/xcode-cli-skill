@@ -2,12 +2,12 @@
 
 [中文文档](./README_CN.md)
 
-CLI + Skill wrapper for the [official Xcode 26.3+ MCP tools](https://developer.apple.com/xcode/mcp/): a persistent local bridge service so the "Allow access to Xcode?" popup stops showing up on every call, plus a Claude Code / Codex Skill that keeps the full Xcode MCP tool surface out of every conversation by default.
+CLI + Skill wrapper for the [official Xcode 26.3+ MCP tools](https://developer.apple.com/xcode/mcp/):  a long-lived `xcode-cli-service` so the "Allow access to Xcode?" popup stops showing up on every call, plus a Claude Code Skill that saves **~5 K tokens** of context per conversation.
 
-| Problem | What this repo gives you |
-|---------|--------------------------|
-| AI agents get a "Allow access to Xcode?" popup over and over when talking to Xcode MCP | A long-lived local bridge service managed by `xcode-cli-ctl`, so the agent talks to one stable endpoint instead of spawning a fresh bridge every time |
-| Xcode MCP tools are powerful, but you usually do not want all of them loaded into every conversation | A packaged `xcode-cli` Skill, so agents can load the workflow on demand instead of treating raw MCP as the default path |
+| Pain point | Solution |
+|------------|----------|
+| AI agents get a "Allow access to Xcode?" popup on every Xcode MCP call, and it never remembers | A persistent `mcp-proxy` process — macOS only asks once |
+| MCP tool definitions (20 tools, ~5K tokens) load into every conversation | Wrapped as a Claude Code Skill — loads on-demand |
 
 ## Details
 
@@ -69,33 +69,22 @@ xcode-cli build
 
 ## AI Agent Integration
 
-### Claude Code (Skill)
+use skill, you can saves **~5 K tokens** of context per conversation.
 
-Install the packaged skill so Claude Code can use `xcode-cli` as an on-demand workflow:
+### Skill Installation (better)
+
 
 ```bash
 xcode-cli-ctl skill install --claude
-```
-
-If you omit `--claude` / `--codex`, the skill installs to both by default.
-
-### Codex (Skill)
-
-Install the packaged skill for Codex:
-
-```bash
 xcode-cli-ctl skill install --codex
-```
-
-Or install to both agents at once:
-
-```bash
+# Install to both Claude Code and Codex
 xcode-cli-ctl skill install
+
+# Or copy manually
+cp skills/xcode-cli/SKILL.md ~/.claude/skills/xcode-cli/SKILL.md
 ```
 
-### MCP Server (not recommended)
-
-If you really want raw MCP wiring instead of the skill-first workflow, add the local bridge manually:
+### MCP Server
 
 ```bash
 # Claude Code
@@ -104,24 +93,6 @@ claude mcp add --transport http xcode http://localhost:48321/mcp
 # Codex
 codex mcp add xcode --url http://localhost:48321/mcp
 ```
-
-> **Note:** This is available as a manual fallback, but the main point of this repo is the skill-based workflow, not raw MCP as the default integration path.
-
-### Common `xcode-cli` Commands
-
-```bash
-xcode-cli windows
-xcode-cli status
-xcode-cli build
-xcode-cli build-log --severity error
-xcode-cli test list
-xcode-cli test all
-xcode-cli test some --target MyTests "FeatureTests#testExample"
-xcode-cli file-issues "Sources/App.swift"
-xcode-cli preview "Sources/MyView.swift" --out ./preview-out
-xcode-cli doc "SwiftUI NavigationStack" --frameworks SwiftUI
-```
-
 ### Available Tools (20) provided by Xcode 26.3+
 
 | Category | Tools |
@@ -133,18 +104,16 @@ xcode-cli doc "SwiftUI NavigationStack" --frameworks SwiftUI
 | **Preview & Execution** | `RenderPreview`, `ExecuteSnippet` |
 | **Workspace** | `XcodeListWindows` |
 
-## How It Works
+## Component List
+ 
 
-```text
-AI Agent ──skill / bash──▶ xcode-cli ──HTTP──▶ local bridge service ──▶ xcrun mcpbridge ──▶ Xcode IDE
-```
-
-| Component | Role |
+|  | Role |
 |-----------|------|
 | `xcrun mcpbridge` | Xcode's built-in MCP bridge |
-| local bridge service | Persistent HTTP bridge managed via `xcode-cli-ctl` on port `48321` |
-| `xcode-cli` | Friendly CLI surface for Xcode MCP workflows |
-| `xcode-cli` Skill | The recommended integration path for Claude Code / Codex |
+| `xcode-cli-service` | Persistent HTTP bridge on port `48321`, managed by `xcode-cli-ctl` — solves the repeated permission popup |
+| `xcode-cli` | CLI for Xcode MCP workflows, used by the Skill and directly from the terminal |
+| [`SKILL.md`](skills/xcode-cli/SKILL.md) | Recommended integration for Claude Code / Codex, installed via `xcode-cli-ctl skill install` |
+| `xcode-cli-ctl` | Manages service lifecycle and Skill installation |
 
 ## License
 
