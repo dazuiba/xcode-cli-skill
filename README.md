@@ -46,6 +46,8 @@ Raw MCP server integration is available, but it is not the recommended default. 
 ```bash
 # 1. Install from npm
 npm install -g xcode-cli
+# To update to the latest version:
+# npm install -g xcode-cli@latest
 
 # 2. Install and start the local bridge service
 xcode-cli-ctl install
