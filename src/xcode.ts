@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import { createRuntime, createServerProxy, describeConnectionIssue } from 'mcporter';
 import type { CallResult } from 'mcporter';
@@ -12,6 +13,7 @@ import { parseTestSpecifier, type ParsedTestSpecifier } from './xcode-test.ts';
 import { renderLsTree } from './xcode-tree.ts';
 import type { CommonOpts, ClientContext } from './xcode-types.ts';
 
+const { version } = createRequire(import.meta.url)('../package.json');
 const SERVER_NAME = 'xcode-tools';
 const DEFAULT_PORT = '48321';
 const DEFAULT_URL = `http://localhost:${DEFAULT_PORT}/mcp`;
@@ -20,6 +22,7 @@ const program = new Command();
 program
   .name('xcode-cli')
   .description('Friendly Xcode MCP CLI for browsing, editing, building, and testing projects.')
+  .version(version, '-v, --version')
   .option('--url <url>', `MCP endpoint (default: ${DEFAULT_URL})`)
   .option('--tab <tabIdentifier>', 'Default tab identifier for commands that need it')
   .option('-t, --timeout <ms>', 'Call timeout in milliseconds', '60000')
