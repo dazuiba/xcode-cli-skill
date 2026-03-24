@@ -474,8 +474,41 @@ program
   .command('run')
   .description('Build and run the active scheme (like Cmd+R in Xcode)')
   .action(async () => {
-    await triggerXcodeKeystroke('r', 'command down');
-    console.log('Run triggered');
+    await withClient(async (ctx) => {
+      const tabIdentifier = await resolveTabIdentifier(ctx, true);
+      const buildCallResult = await ctx.call('BuildProject', { tabIdentifier });
+      const build = unwrapResult(buildCallResult) as Record<string, unknown>;
+      const buildResult = typeof build?.buildResult === 'string' ? build.buildResult : '';
+      const errors = Array.isArray(build?.errors) ? build.errors : [];
+      const buildSucceeded = errors.length === 0;
+
+      if (!buildSucceeded) {
+        // Build failed — return build result as-is
+        printResult(buildCallResult, ctx.output);
+        process.exit(1);
+        return;
+      }
+
+      // Build succeeded — trigger run-without-build (already built)
+      let runTriggered = true;
+      let runError: string | undefined;
+      try {
+        await triggerXcodeKeystroke('r', 'command down, control down');
+      } catch (error) {
+        runTriggered = false;
+        runError = error instanceof Error ? error.message : String(error);
+      }
+
+      const result = { buildResult, runTriggered, ...(runError ? { error: runError } : {}) };
+      if (ctx.output === 'json') {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(runTriggered ? `${buildResult}\nRun triggered` : `${buildResult}\nRun failed: ${runError}`);
+      }
+      if (!runTriggered) {
+        process.exit(1);
+      }
+    });
   });
 
 program

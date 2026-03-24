@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.10 – 2026-03-24 – feat: `run` now builds via MCP before launching
+
+### Changed
+- `run` command now calls `BuildProject` via MCP first; if the build fails, returns the build error JSON as-is and exits with code 1
+- On build success, triggers run-without-build via AppleScript and returns JSON result `{ buildResult, runTriggered }`
+- All `run` output (success and failure) is now JSON-capable (`--json` flag)
+- Updated SKILL.md to reflect new `run` behavior
+
+---
+
 ## 1.0.9 – 2026-03-15 – fix: auto-reconnect when Xcode restarts
 
 ### Fixed
