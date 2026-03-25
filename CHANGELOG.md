@@ -1,10 +1,11 @@
 # Changelog
 
-## 1.0.11 – 2026-03-25 – fix: `snippet` command now passes required `purpose` parameter
+## 1.0.12 – 2026-03-25 – fix: `snippet` command now passes required `purpose` parameter
 
 ### Fixed
 - `snippet` command was missing the required `purpose` parameter for the MCP `ExecuteSnippet` tool, causing all snippet calls to fail with "The data couldn't be read because it is missing."
 - Added `--purpose <description>` option (defaults to "Execute code snippet")
+- Updated SKILL.md to document `--purpose` option
 
 ---
 

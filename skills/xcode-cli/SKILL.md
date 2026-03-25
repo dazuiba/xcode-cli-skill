@@ -33,7 +33,7 @@ All commands: `xcode-cli <cmd> [args]`. **Always use `--tab <tabIdentifier>`** â
 | `file-issues` | `file-issues "MyApp/Sources/MyFile.swift"` | Single-file diagnostics, no full build |
 | `test` | `test all` / `test list [--json]` / `test some "Target::Class/method()"` | Run/list tests |
 | `preview` | `preview "MyApp/Sources/MyView.swift" --out ./out` | SwiftUI preview (requires `#Preview` macro) |
-| `snippet` | `snippet "MyApp/Sources/File.swift" "print(expr)"` | Execute code snippet |
+| `snippet` | `snippet "MyApp/Sources/File.swift" "print(expr)" --purpose "Inspect value"` | Execute code snippet in file context; `--purpose` describes why |
 | `doc` | `doc "SwiftUI NavigationStack" --frameworks SwiftUI` | Search Apple documentation |
 | `read` | `read "path/to/file"` | Read file |
 | `ls` | `ls [-r] /` | List directory |
